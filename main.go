@@ -73,6 +73,7 @@ func main() {
 				Archived:        repo.Archived,
 				LicenseSpdxID:   repo.License.SpdxID,
 				Topics:          repo.Topics,
+				CreatedAt:       JSONTime(repo.CreatedAt),
 			})
 			seenRepos[repo.ID] = true
 
@@ -110,7 +111,7 @@ func main() {
 
 	sort.Slice(totalRepos, func(i, j int) bool {
 		return totalRepos[i].StargazersCount > totalRepos[j].StargazersCount &&
-			totalRepos[i].CreatedAt.After(totalRepos[j].CreatedAt)
+			time.Time(totalRepos[i].CreatedAt).After(time.Time(totalRepos[j].CreatedAt))
 	})
 
 	file, err := os.Create("repos.json")
@@ -149,20 +150,26 @@ func githubQuery(perPage, page, minStars, maxStars int) string {
 	return u.String()
 }
 
+type JSONTime time.Time
+
+func (t JSONTime) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf("\"%s\"", time.Time(t).Format(time.RFC3339))), nil
+}
+
 type GoData struct {
 	Data []GoRepo `json:"data"`
 }
 
 type GoRepo struct {
-	ID              int       `json:"id"`
-	NodeID          string    `json:"node_id"`
-	FullName        string    `json:"full_name"`
-	AvatarURL       string    `json:"avatar_url"`
-	StargazersCount int       `json:"stargazers_count"`
-	Archived        bool      `json:"archived"`
-	LicenseSpdxID   string    `json:"license_spdx_id"`
-	Topics          []string  `json:"topics"`
-	CreatedAt       time.Time // `json:"created_at"`
+	ID              int      `json:"id"`
+	NodeID          string   `json:"node_id"`
+	FullName        string   `json:"full_name"`
+	AvatarURL       string   `json:"avatar_url"`
+	StargazersCount int      `json:"stargazers_count"`
+	Archived        bool     `json:"archived"`
+	LicenseSpdxID   string   `json:"license_spdx_id"`
+	Topics          []string `json:"topics"`
+	CreatedAt       JSONTime `json:"created_at"`
 }
 
 type GitHubRepo struct {
