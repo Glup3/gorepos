@@ -33,6 +33,7 @@ func main() {
 	const maxIterations = 200
 
 	var totalRepos []GoRepo
+	seenRepos := make(map[int]bool)
 
 	for {
 		slog.Info(
@@ -59,6 +60,10 @@ func main() {
 		}
 
 		for i, repo := range resp.Items {
+			if seenRepos[repo.ID] {
+				continue
+			}
+
 			totalRepos = append(totalRepos, GoRepo{
 				ID:              repo.ID,
 				NodeID:          repo.NodeID,
@@ -69,9 +74,10 @@ func main() {
 				LicenseSpdxID:   repo.License.SpdxID,
 				Topics:          repo.Topics,
 			})
+			seenRepos[repo.ID] = true
 
 			if currentPage == lastPage && i == len(resp.Items)-1 {
-				maxStars = repo.StargazersCount - 1
+				maxStars = repo.StargazersCount
 			}
 		}
 
@@ -87,6 +93,14 @@ func main() {
 		}
 
 		if currentPage == lastPage {
+			if maxStars <= minStars {
+				slog.Warn(
+					"there are still more entries after the last page",
+					slog.Int("minStars", minStars),
+					slog.Int("maxStars", maxStars),
+				)
+			}
+
 			currentPage = 1
 			continue
 		}
@@ -95,7 +109,8 @@ func main() {
 	}
 
 	sort.Slice(totalRepos, func(i, j int) bool {
-		return totalRepos[i].StargazersCount > totalRepos[j].StargazersCount
+		return totalRepos[i].StargazersCount > totalRepos[j].StargazersCount &&
+			totalRepos[i].CreatedAt.After(totalRepos[j].CreatedAt)
 	})
 
 	file, err := os.Create("repos.json")
@@ -139,14 +154,15 @@ type GoData struct {
 }
 
 type GoRepo struct {
-	ID              int      `json:"id"`
-	NodeID          string   `json:"node_id"`
-	FullName        string   `json:"full_name"`
-	AvatarURL       string   `json:"avatar_url"`
-	StargazersCount int      `json:"stargazers_count"`
-	Archived        bool     `json:"archived"`
-	LicenseSpdxID   string   `json:"license_spdx_id"`
-	Topics          []string `json:"topics"`
+	ID              int       `json:"id"`
+	NodeID          string    `json:"node_id"`
+	FullName        string    `json:"full_name"`
+	AvatarURL       string    `json:"avatar_url"`
+	StargazersCount int       `json:"stargazers_count"`
+	Archived        bool      `json:"archived"`
+	LicenseSpdxID   string    `json:"license_spdx_id"`
+	Topics          []string  `json:"topics"`
+	CreatedAt       time.Time // `json:"created_at"`
 }
 
 type GitHubRepo struct {
