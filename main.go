@@ -110,8 +110,10 @@ func main() {
 	}
 
 	sort.Slice(totalRepos, func(i, j int) bool {
-		return totalRepos[i].StargazersCount > totalRepos[j].StargazersCount &&
-			time.Time(totalRepos[i].CreatedAt).After(time.Time(totalRepos[j].CreatedAt))
+		if totalRepos[i].StargazersCount != totalRepos[j].StargazersCount {
+			return totalRepos[i].StargazersCount > totalRepos[j].StargazersCount
+		}
+		return time.Time(totalRepos[i].CreatedAt).Before(time.Time(totalRepos[j].CreatedAt))
 	})
 
 	file, err := os.Create("repos.json")
