@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"time"
 
@@ -29,9 +30,44 @@ func main() {
 		os.Exit(1)
 	}
 
+	var totalRepos []GoRepo
+
 	for _, repo := range result.Items {
-		slog.Info(fmt.Sprintf("%s (%d stars) - %s", repo.Name, repo.StargazersCount, repo.HTMLURL))
+		totalRepos = append(totalRepos, GoRepo{
+			ID:              repo.ID,
+			NodeID:          repo.NodeID,
+			FullName:        repo.FullName,
+			AvatarURL:       repo.Owner.AvatarURL,
+			StargazersCount: repo.StargazersCount,
+			Archived:        repo.Archived,
+			LicenseSpdxID:   repo.License.SpdxID,
+			Topics:          repo.Topics,
+		})
 	}
+
+	sort.Slice(totalRepos, func(i, j int) bool {
+		return totalRepos[i].StargazersCount > totalRepos[j].StargazersCount
+	})
+
+	file, err := os.Create("repos.json")
+	if err != nil {
+		slog.Error("creating json", slog.Any("error", err))
+		os.Exit(1)
+	}
+	defer file.Close()
+
+	jsonData, err := json.MarshalIndent(GoData{Data: totalRepos}, "", "  ")
+	if err != nil {
+		slog.Error("marshaling json", slog.Any("error", err))
+		os.Exit(1)
+	}
+
+	if _, err := file.Write(jsonData); err != nil {
+		slog.Error("writing json", slog.Any("error", err))
+		os.Exit(1)
+	}
+
+	slog.Info("successfully created json with go repos", slog.Int("count", len(totalRepos)))
 }
 
 func githubQuery(perPage, page int) string {
@@ -50,6 +86,21 @@ func githubQuery(perPage, page int) string {
 	u.RawQuery = query.Encode()
 
 	return u.String()
+}
+
+type GoData struct {
+	Data []GoRepo `json:"data"`
+}
+
+type GoRepo struct {
+	ID              int      `json:"id"`
+	NodeID          string   `json:"node_id"`
+	FullName        string   `json:"full_name"`
+	AvatarURL       string   `json:"avatar_url"`
+	StargazersCount int      `json:"stargazers_count"`
+	Archived        bool     `json:"archived"`
+	LicenseSpdxID   string   `json:"license_spdx_id"`
+	Topics          []string `json:"topics"`
 }
 
 type GitHubRepo struct {
