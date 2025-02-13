@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -23,26 +25,57 @@ func main() {
 		os.Exit(1)
 	}
 
-	perPage, page := 100, 1
-	result, err := getRepos(perPage, page)
+	firstResp, err := getRepos(1, 1)
 	if err != nil {
-		slog.Error("fetching repos", slog.Any("error", err), slog.Int("perPage", perPage), slog.Int("page", page))
+		slog.Error("fetching repos count", slog.Any("error", err))
+		os.Exit(1)
+	}
+	slog.Info("total repo count", slog.Int("count", firstResp.TotalCount))
+
+	numWorkers := 5
+	perPage := 100
+	totalPages := (firstResp.TotalCount + perPage - 1) / perPage
+
+	pages := make(chan int, totalPages)
+	results := make(chan *GitHubResponse, totalPages)
+	errorsChan := make(chan error, totalPages)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
+
+	for i := 0; i < numWorkers; i++ {
+		go worker(ctx, perPage, pages, results, errorsChan, &wg, cancel)
+	}
+
+	for i := range totalPages {
+		wg.Add(1)
+		pages <- (i + 1)
+	}
+	close(pages)
+
+	wg.Wait()
+	close(results)
+	close(errorsChan)
+
+	if len(errorsChan) > 0 {
+		slog.Info("total pages fetched vs expected", slog.Int("actual", len(results)), slog.Int("expected", totalPages))
 		os.Exit(1)
 	}
 
 	var totalRepos []GoRepo
-
-	for _, repo := range result.Items {
-		totalRepos = append(totalRepos, GoRepo{
-			ID:              repo.ID,
-			NodeID:          repo.NodeID,
-			FullName:        repo.FullName,
-			AvatarURL:       repo.Owner.AvatarURL,
-			StargazersCount: repo.StargazersCount,
-			Archived:        repo.Archived,
-			LicenseSpdxID:   repo.License.SpdxID,
-			Topics:          repo.Topics,
-		})
+	for result := range results {
+		for _, repo := range result.Items {
+			totalRepos = append(totalRepos, GoRepo{
+				ID:              repo.ID,
+				NodeID:          repo.NodeID,
+				FullName:        repo.FullName,
+				AvatarURL:       repo.Owner.AvatarURL,
+				StargazersCount: repo.StargazersCount,
+				Archived:        repo.Archived,
+				LicenseSpdxID:   repo.License.SpdxID,
+				Topics:          repo.Topics,
+			})
+		}
 	}
 
 	sort.Slice(totalRepos, func(i, j int) bool {
@@ -68,6 +101,29 @@ func main() {
 	}
 
 	slog.Info("successfully created json with go repos", slog.Int("count", len(totalRepos)))
+}
+
+func worker(ctx context.Context, perPage int, pages <-chan int, results chan<- *GitHubResponse, errorsChan chan<- error, wg *sync.WaitGroup, cancelFunc context.CancelFunc) {
+	for page := range pages {
+		select {
+		case <-ctx.Done():
+			break
+		default:
+			slog.Info("fetching repos", slog.Int("page", page))
+
+			res, err := getRepos(perPage, page)
+			if err != nil {
+				slog.Error("fetch error", slog.Any("error", err), slog.Int("page", page))
+				errorsChan <- err
+				cancelFunc()
+				break
+			}
+
+			results <- res
+		}
+
+		wg.Done()
+	}
 }
 
 func githubQuery(perPage, page int) string {
