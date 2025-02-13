@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,7 +11,6 @@ import (
 	"os"
 	"sort"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -25,46 +23,42 @@ func main() {
 		os.Exit(1)
 	}
 
-	firstResp, err := getRepos(1, 1)
-	if err != nil {
-		slog.Error("fetching repos count", slog.Any("error", err))
-		os.Exit(1)
-	}
-	slog.Info("total repo count", slog.Int("count", firstResp.TotalCount))
-
-	numWorkers := 5
 	perPage := 100
-	totalPages := (firstResp.TotalCount + perPage - 1) / perPage
+	currentPage := 1
+	lastPage := 1000 / perPage
+	minStars := 200
+	maxStars := 1_000_000
 
-	pages := make(chan int, totalPages)
-	results := make(chan *GitHubResponse, totalPages)
-	errorsChan := make(chan error, totalPages)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	var wg sync.WaitGroup
-
-	for i := 0; i < numWorkers; i++ {
-		go worker(ctx, perPage, pages, results, errorsChan, &wg, cancel)
-	}
-
-	for i := range totalPages {
-		wg.Add(1)
-		pages <- (i + 1)
-	}
-	close(pages)
-
-	wg.Wait()
-	close(results)
-	close(errorsChan)
-
-	if len(errorsChan) > 0 {
-		slog.Info("total pages fetched vs expected", slog.Int("actual", len(results)), slog.Int("expected", totalPages))
-		os.Exit(1)
-	}
+	currentIteration := 1
+	const maxIterations = 200
 
 	var totalRepos []GoRepo
-	for result := range results {
-		for _, repo := range result.Items {
+
+	for {
+		slog.Info(
+			"fetching repos",
+			slog.Int("page", currentPage),
+			slog.Int("perPage", perPage),
+			slog.Int("minStars", minStars),
+			slog.Int("maxStars", maxStars),
+			slog.Int("iteration", currentIteration),
+		)
+
+		resp, err := getRepos(perPage, currentPage, minStars, maxStars)
+		if err != nil {
+			slog.Error(
+				"failed fetching repos",
+				slog.Any("error", err),
+				slog.Int("page", currentPage),
+				slog.Int("perPage", perPage),
+				slog.Int("minStars", minStars),
+				slog.Int("maxStars", maxStars),
+				slog.Int("iteration", currentIteration),
+			)
+			os.Exit(1)
+		}
+
+		for i, repo := range resp.Items {
 			totalRepos = append(totalRepos, GoRepo{
 				ID:              repo.ID,
 				NodeID:          repo.NodeID,
@@ -75,7 +69,29 @@ func main() {
 				LicenseSpdxID:   repo.License.SpdxID,
 				Topics:          repo.Topics,
 			})
+
+			if currentPage == lastPage && i == len(resp.Items)-1 {
+				maxStars = repo.StargazersCount - 1
+			}
 		}
+
+		currentIteration++
+
+		if len(resp.Items) == 0 {
+			break
+		}
+
+		if currentIteration >= maxIterations {
+			slog.Warn("max iterations exceeded", slog.Int("maxIterations", maxIterations))
+			break
+		}
+
+		if currentPage == lastPage {
+			currentPage = 1
+			continue
+		}
+
+		currentPage++
 	}
 
 	sort.Slice(totalRepos, func(i, j int) bool {
@@ -103,37 +119,11 @@ func main() {
 	slog.Info("successfully created json with go repos", slog.Int("count", len(totalRepos)))
 }
 
-func worker(ctx context.Context, perPage int, pages <-chan int, results chan<- *GitHubResponse, errorsChan chan<- error, wg *sync.WaitGroup, cancelFunc context.CancelFunc) {
-	for page := range pages {
-		select {
-		case <-ctx.Done():
-			break
-		default:
-			slog.Info("fetching repos", slog.Int("page", page))
-
-			res, err := getRepos(perPage, page)
-			if err != nil {
-				slog.Error("fetch error", slog.Any("error", err), slog.Int("page", page))
-				errorsChan <- err
-				cancelFunc()
-				break
-			}
-
-			results <- res
-		}
-
-		wg.Done()
-	}
-}
-
-func githubQuery(perPage, page int) string {
+func githubQuery(perPage, page, minStars, maxStars int) string {
 	u, _ := url.Parse("https://api.github.com/search/repositories")
 
-	language := "go"
-	minStarCount := 200
-
 	query := url.Values{}
-	query.Set("q", fmt.Sprintf("language:%s stars:>=%d", language, minStarCount))
+	query.Set("q", fmt.Sprintf("language:%s stars:%d...%d", "go", minStars, maxStars))
 	query.Set("sort", "stars")
 	query.Set("order", "desc")
 	query.Set("per_page", strconv.Itoa(perPage))
@@ -273,13 +263,13 @@ type GitHubResponse struct {
 	TotalCount int          `json:"total_count"`
 }
 
-func getRepos(perPage, page int) (*GitHubResponse, error) {
+func getRepos(perPage, page, minStars, maxStars int) (*GitHubResponse, error) {
 	githubToken, ok := os.LookupEnv("GITHUB_TOKEN")
 	if !ok {
 		return nil, errors.New("loading github token failed")
 	}
 
-	req, _ := http.NewRequest("GET", githubQuery(perPage, page), nil)
+	req, _ := http.NewRequest("GET", githubQuery(perPage, page, minStars, maxStars), nil)
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("Authorization", "Bearer "+githubToken)
 
