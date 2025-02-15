@@ -9,6 +9,14 @@
   <body>
     <main>
       <h1>Ditto</h1>
+
+      <ul>
+        {{range .}} {{ template "item" .}} {{end}}
+      </ul>
     </main>
   </body>
 </html>
+
+{{ define "item" }}
+<li>{{ .FullName }}</li>
+{{end}}

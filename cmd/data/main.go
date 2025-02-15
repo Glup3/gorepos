@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"time"
 
+	github "github.com/glup3/gorepos"
 	"github.com/joho/godotenv"
 )
 
@@ -32,7 +33,7 @@ func main() {
 	currentIteration := 1
 	const maxIterations = 200
 
-	var totalRepos []GoRepo
+	var totalRepos []github.GoRepo
 	seenRepos := make(map[int]bool)
 
 	for {
@@ -64,7 +65,7 @@ func main() {
 				continue
 			}
 
-			totalRepos = append(totalRepos, GoRepo{
+			totalRepos = append(totalRepos, github.GoRepo{
 				ID:              repo.ID,
 				NodeID:          repo.NodeID,
 				FullName:        repo.FullName,
@@ -73,7 +74,7 @@ func main() {
 				Archived:        repo.Archived,
 				LicenseSpdxID:   repo.License.SpdxID,
 				Topics:          repo.Topics,
-				CreatedAt:       JSONTime(repo.CreatedAt),
+				CreatedAt:       github.JSONTime(repo.CreatedAt),
 			})
 			seenRepos[repo.ID] = true
 
@@ -123,7 +124,7 @@ func main() {
 	}
 	defer file.Close()
 
-	jsonData, err := json.MarshalIndent(GoData{Data: totalRepos}, "", "  ")
+	jsonData, err := json.MarshalIndent(github.GoData{Data: totalRepos}, "", "  ")
 	if err != nil {
 		slog.Error("marshaling json", slog.Any("error", err))
 		os.Exit(1)
@@ -150,28 +151,6 @@ func githubQuery(perPage, page, minStars, maxStars int) string {
 	u.RawQuery = query.Encode()
 
 	return u.String()
-}
-
-type JSONTime time.Time
-
-func (t JSONTime) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf("\"%s\"", time.Time(t).Format(time.RFC3339))), nil
-}
-
-type GoData struct {
-	Data []GoRepo `json:"data"`
-}
-
-type GoRepo struct {
-	ID              int      `json:"id"`
-	NodeID          string   `json:"node_id"`
-	FullName        string   `json:"full_name"`
-	AvatarURL       string   `json:"avatar_url"`
-	StargazersCount int      `json:"stargazers_count"`
-	Archived        bool     `json:"archived"`
-	LicenseSpdxID   string   `json:"license_spdx_id"`
-	Topics          []string `json:"topics"`
-	CreatedAt       JSONTime `json:"created_at"`
 }
 
 type GitHubRepo struct {
