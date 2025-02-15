@@ -3,8 +3,8 @@
   transition: opacity 250ms ease-in;
 }
 .htmx-request .my-indicator {
-  opacity: 0.8;
+  opacity: 0.7;
 }
 .htmx-request.my-indicator {
-  opacity: 0.8;
+  opacity: 0.7;
 }
