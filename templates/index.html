@@ -4,13 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Ditto</title>
+    <script
+      src="https://unpkg.com/htmx.org@2.0.4"
+      integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+      crossorigin="anonymous"
+    ></script>
     <!-- <link href="css/style.css" rel="stylesheet" /> -->
   </head>
   <body>
     <main>
       <h1>Ditto</h1>
 
-      {{ template "items" . }}
+      <button hx-get="/repos/random" hx-target="#discover" hx-swap="innerHTML">
+        Ditto
+      </button>
+
+      <div id="discover">{{ template "items" . }}</div>
     </main>
   </body>
 </html>

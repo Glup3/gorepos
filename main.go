@@ -43,6 +43,16 @@ func main() {
 		tmpl.Execute(w, repos)
 	})
 
+	http.HandleFunc("/repos/random", func(w http.ResponseWriter, r *http.Request) {
+		repos, err := getRandomItems(goData.Data, 16, time.Now().UnixNano())
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		tmpl.ExecuteTemplate(w, "items", repos)
+	})
+
 	slog.Info("server started on :8080")
 	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
