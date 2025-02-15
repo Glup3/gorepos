@@ -69,12 +69,13 @@ func main() {
 				ID:              repo.ID,
 				NodeID:          repo.NodeID,
 				FullName:        repo.FullName,
+				Description:     repo.Description,
 				AvatarURL:       repo.Owner.AvatarURL,
 				StargazersCount: repo.StargazersCount,
 				Archived:        repo.Archived,
 				LicenseSpdxID:   repo.License.SpdxID,
-				Topics:          repo.Topics,
 				CreatedAt:       github.JSONTime(repo.CreatedAt),
+				Topics:          repo.Topics,
 			})
 			seenRepos[repo.ID] = true
 

@@ -14,8 +14,13 @@ import (
 	github "github.com/glup3/gorepos/internal"
 )
 
-//go:embed repos.json
-var content embed.FS
+var (
+	//go:embed repos.json
+	content embed.FS
+
+	//go:embed assets/css/output.css
+	css embed.FS
+)
 
 func main() {
 	tmpl := template.Must(template.ParseFiles("templates/index.html", "templates/items.html"))
@@ -33,17 +38,14 @@ func main() {
 	}
 	slog.Info("loaded json in memory", slog.Int("repoCount", len(goData.Data)))
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		repos, err := getRandomItems(goData.Data, 16, time.Now().UnixNano())
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	mux := http.NewServeMux()
+	mux.Handle("GET /assets/css/output.css", http.FileServer(http.FS(css)))
 
-		tmpl.Execute(w, repos)
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		tmpl.Execute(w, goData.Data[:16])
 	})
 
-	http.HandleFunc("/repos/random", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /repos/random", func(w http.ResponseWriter, r *http.Request) {
 		repos, err := getRandomItems(goData.Data, 16, time.Now().UnixNano())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -54,7 +56,7 @@ func main() {
 	})
 
 	slog.Info("server started on :8080")
-	err = http.ListenAndServe(":8080", nil)
+	err = http.ListenAndServe(":8080", mux)
 	if err != nil {
 		slog.Error("server error", slog.Any("error", err))
 	}

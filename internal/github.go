@@ -13,12 +13,13 @@ type GoRepo struct {
 	ID              int      `json:"id"`
 	NodeID          string   `json:"node_id"`
 	FullName        string   `json:"full_name"`
+	Description     string   `json:"description"`
 	AvatarURL       string   `json:"avatar_url"`
 	StargazersCount int      `json:"stargazers_count"`
 	Archived        bool     `json:"archived"`
 	LicenseSpdxID   string   `json:"license_spdx_id"`
-	Topics          []string `json:"topics"`
 	CreatedAt       JSONTime `json:"created_at"`
+	Topics          []string `json:"topics"`
 }
 
 type JSONTime time.Time
