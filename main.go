@@ -46,7 +46,9 @@ func main() {
 	mux.Handle("GET /assets/css/", http.FileServer(http.FS(css)))
 
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		err := tmpl.Execute(w, goData.Data[:16])
+		err := tmpl.Execute(w, map[string]interface{}{
+			"DiscoveryRepos": goData.Data[:16],
+		})
 		if err != nil {
 			slog.Error("unable to render", slog.Any("error", err))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
