@@ -6,11 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Ditto</title>
     <script
+      defer
       src="https://unpkg.com/htmx.org@2.0.4"
       integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
       crossorigin="anonymous"
     ></script>
     <link rel="stylesheet" href="assets/css/output.css" />
+    <link rel="stylesheet" href="assets/css/index.css" />
   </head>
   <body>
     <main class="mx-auto max-w-6xl p-4">
@@ -24,11 +26,13 @@
             hx-get="/repos/discover"
             hx-target="#discover"
             hx-swap="innerHTML"
+            hx-indicator="#discover"
           >
             Discover
           </button>
         </div>
-        <div id="discover">{{ template "items" . }}</div>
+
+        <div id="discover" class="my-indicator">{{ template "items" . }}</div>
       </section>
     </main>
   </body>
@@ -48,6 +52,7 @@
         src="{{ .AvatarURL }}"
         height="32"
         width="32"
+        alt="logo of repo owner for {{ .FullName }}"
         class="mr-2 rounded-full"
       />
       <a
