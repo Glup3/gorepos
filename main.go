@@ -23,7 +23,11 @@ var (
 )
 
 func main() {
-	tmpl := template.Must(template.ParseFiles("templates/index.html"))
+	slog.Info("wow", "hi", 57100%1000)
+
+	tmpl := template.Must(template.New("index").
+		Funcs(template.FuncMap{"formatStars": formatStars}).
+		ParseFiles("templates/index.html"))
 
 	data, err := content.ReadFile("repos.json")
 	if err != nil {
@@ -42,7 +46,12 @@ func main() {
 	mux.Handle("GET /assets/css/output.css", http.FileServer(http.FS(css)))
 
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		tmpl.Execute(w, goData.Data[:16])
+		err := tmpl.Execute(w, goData.Data[:16])
+		if err != nil {
+			slog.Error("unable to render", slog.Any("error", err))
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	})
 
 	mux.HandleFunc("GET /repos/random", func(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +61,12 @@ func main() {
 			return
 		}
 
-		tmpl.ExecuteTemplate(w, "items", repos)
+		err = tmpl.ExecuteTemplate(w, "items", repos)
+		if err != nil {
+			slog.Error("unable to render", slog.Any("error", err))
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	})
 
 	slog.Info("server started on :8080")
@@ -81,4 +95,17 @@ func getRandomItems[T any](arr []T, k int, seed int64) ([]T, error) {
 	}
 
 	return result, nil
+}
+
+func formatStars(n int) string {
+	if n < 1000 {
+		return fmt.Sprintf("%d", n)
+	}
+
+	rest := n % 1000
+	if rest >= 100 {
+		return fmt.Sprintf("%d.%dK", n/1000, rest/100)
+	}
+
+	return fmt.Sprintf("%dK", n/1000)
 }

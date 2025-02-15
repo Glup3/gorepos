@@ -1,3 +1,4 @@
+{{ define "index" }}
 <!doctype html>
 <html lang="en">
   <head>
@@ -32,9 +33,11 @@
     </main>
   </body>
 </html>
+{{ end }}
+
+<!-- formatter divider -->
 
 {{ define "items" }}
-
 <div
   class="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] grid-rows-auto gap-4"
 >
@@ -67,12 +70,11 @@
         <span>Go</span>
       </span>
 
-      <span>⭐ {{ .StargazersCount }}</span>
+      <span>⭐ {{ formatStars .StargazersCount }}</span>
 
       <span class="truncate">{{ .LicenseSpdxID}}</span>
     </div>
   </div>
   {{end}}
 </div>
-
 {{end}}
