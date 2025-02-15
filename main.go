@@ -54,7 +54,7 @@ func main() {
 		}
 	})
 
-	mux.HandleFunc("GET /repos/random", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /repos/discover", func(w http.ResponseWriter, r *http.Request) {
 		repos, err := getRandomItems(goData.Data, 16, time.Now().UnixNano())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
