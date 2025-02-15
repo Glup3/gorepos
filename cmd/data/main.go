@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"time"
 
-	github "github.com/glup3/gorepos"
+	github "github.com/glup3/gorepos/internal"
 	"github.com/joho/godotenv"
 )
 

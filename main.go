@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 
-	github "github.com/glup3/gorepos"
+	github "github.com/glup3/gorepos/internal"
 )
 
 //go:embed repos.json
