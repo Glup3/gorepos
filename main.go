@@ -23,7 +23,7 @@ var (
 )
 
 func main() {
-	tmpl := template.Must(template.ParseFiles("templates/index.html", "templates/items.html"))
+	tmpl := template.Must(template.ParseFiles("templates/index.html"))
 
 	data, err := content.ReadFile("repos.json")
 	if err != nil {
