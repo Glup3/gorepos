@@ -23,8 +23,6 @@ var (
 )
 
 func main() {
-	slog.Info("wow", "hi", 57100%1000)
-
 	tmpl := template.Must(template.New("index").
 		Funcs(template.FuncMap{"formatStars": formatStars}).
 		ParseFiles("templates/index.html"))
@@ -57,6 +55,8 @@ func main() {
 	})
 
 	mux.HandleFunc("GET /repos/discover", func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("get featured repos", slog.String("method", r.Method), slog.String("path", r.URL.Path))
+
 		repos, err := getRandomItems(goData.Data, 16, time.Now().UnixNano())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
