@@ -52,6 +52,12 @@ func main() {
 	mux.Handle("GET /assets/", http.FileServer(http.FS(assets)))
 
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			w.WriteHeader(http.StatusNotFound)
+			slog.Info("handler for route not found", slog.String("url", r.URL.Path))
+			return
+		}
+
 		err := tmpl.Execute(w, map[string]interface{}{
 			"DiscoveryRepos": goData.Data[:16],
 		})
