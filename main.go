@@ -18,8 +18,8 @@ var (
 	//go:embed repos.json
 	content embed.FS
 
-	//go:embed assets/css
-	css embed.FS
+	//go:embed assets
+	assets embed.FS
 )
 
 var pool = sync.Pool{
@@ -49,7 +49,7 @@ func main() {
 	slog.Info("loaded json in memory", slog.Int("repoCount", len(goData.Data)))
 
 	mux := http.NewServeMux()
-	mux.Handle("GET /assets/css/", http.FileServer(http.FS(css)))
+	mux.Handle("GET /assets/", http.FileServer(http.FS(assets)))
 
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		err := tmpl.Execute(w, map[string]interface{}{
