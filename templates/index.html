@@ -60,6 +60,21 @@
       </section>
     </main>
   </body>
+
+  <script>
+    document.addEventListener("htmx:afterSwap", () => {
+      document.querySelectorAll("#discover > div").forEach((item, index) => {
+        item.style.opacity = "0";
+        item.style.transform = "translateY(10px)";
+        setTimeout(() => {
+          item.style.transition =
+            "opacity 0.3s ease-out, transform 0.3s ease-out";
+          item.style.opacity = "1";
+          item.style.transform = "translateY(0)";
+        }, index * 10); // Stagger delay for each item
+      });
+    });
+  </script>
 </html>
 {{ end }}
 
