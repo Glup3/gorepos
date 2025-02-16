@@ -37,8 +37,8 @@
       <h1 class="text-4xl font-bold mb-8">Go Repos</h1>
 
       <section>
-        <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xl font-bold">Featured Repositories</h2>
+        <div class="flex justify-between items-center gap-2 mb-6">
+          <h2 class="text-3xl font-bold">Featured Repositories</h2>
 
           <button
             hx-get="/repos/discover"
@@ -46,8 +46,9 @@
             hx-swap="innerHTML"
             hx-indicator="#discover"
             data-umami-event="discover-button"
+            class="cursor-pointer px-5 py-2.5 bg-white/10 backdrop-blur-md text-gray-900 font-medium rounded-lg border border-gray-300 hover:bg-gray-200 hover:border-gray-300 focus:ring-1 focus:ring-gray-300 focus:ring-opacity-50 transition-all duration-300"
           >
-            Discover
+            🔍 Discover
           </button>
         </div>
 
