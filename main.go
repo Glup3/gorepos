@@ -9,7 +9,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"time"
+	"sync"
 
 	github "github.com/glup3/gorepos/internal"
 )
@@ -22,19 +22,27 @@ var (
 	css embed.FS
 )
 
+var pool = sync.Pool{
+	New: func() interface{} {
+		return make([]github.GoRepo, 0, 16)
+	},
+}
+
 func main() {
 	tmpl := template.Must(template.New("index").
 		Funcs(template.FuncMap{"formatStars": formatStars}).
 		ParseFiles("templates/index.html"))
 
-	data, err := content.ReadFile("repos.json")
+	file, err := content.Open("repos.json")
 	if err != nil {
 		slog.Error("unable to read data file", slog.Any("error", err))
 		os.Exit(1)
 	}
+	defer file.Close()
 
+	decoder := json.NewDecoder(file)
 	var goData github.GoData
-	if err := json.Unmarshal(data, &goData); err != nil {
+	if err := decoder.Decode(&goData); err != nil {
 		slog.Error("unable parse json", slog.Any("error", err))
 		os.Exit(1)
 	}
@@ -55,9 +63,7 @@ func main() {
 	})
 
 	mux.HandleFunc("GET /repos/discover", func(w http.ResponseWriter, r *http.Request) {
-		slog.Info("get featured repos", slog.String("method", r.Method), slog.String("path", r.URL.Path))
-
-		repos, err := getRandomItems(goData.Data, 16, time.Now().UnixNano())
+		repos, err := getRandomItems(goData.Data, 16)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -69,6 +75,8 @@ func main() {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		pool.Put(repos[:0])
 	})
 
 	slog.Info("server started on :8080")
@@ -78,22 +86,18 @@ func main() {
 	}
 }
 
-func getRandomItems[T any](arr []T, k int, seed int64) ([]T, error) {
+func getRandomItems(arr []github.GoRepo, k int) ([]github.GoRepo, error) {
 	n := len(arr)
 	if k > n {
 		return nil, fmt.Errorf("k cannot be larger than the array size")
 	}
 
-	rng := rand.New(rand.NewSource(seed))
-	selectedIndices := make(map[int]struct{})
-	result := make([]T, 0, k)
+	result := pool.Get().([]github.GoRepo)
+	result = result[:0] // Reset length (keep capacity)
 
-	for len(selectedIndices) < k {
-		index := rng.Intn(n)
-		if _, exists := selectedIndices[index]; !exists {
-			selectedIndices[index] = struct{}{}
-			result = append(result, arr[index])
-		}
+	perm := rand.Perm(n)[:k]
+	for _, idx := range perm {
+		result = append(result, arr[idx])
 	}
 
 	return result, nil
