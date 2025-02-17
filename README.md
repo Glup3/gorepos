@@ -18,6 +18,12 @@ The data is aggregated via the GitHub API and displayed using `net/http` and `ht
 > This project is still under heavy development,
 > and the codebase has not been cleaned up yet.
 
+## Feedback
+
+Got suggestions, feature requests, or found a bug? Feel free to open an issue on GitHub! Your feedback is greatly appreciated and helps improve the project.
+
+👉 [Submit Feedback or Report an Issue](https://github.com/Glup3/gorepos/issues)
+
 ## Development
 
 Install Go Dependencies
@@ -40,3 +46,7 @@ make api
 # in a different terminal
 make css-watch
 ```
+
+## License
+
+[MIT](./LICENSE.md)
