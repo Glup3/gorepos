@@ -6,17 +6,17 @@
     </a>
 </p>
 
-Showcases random GitHub Go Repositories written in Go
+[Go Repos](https://gorepos.glup3.dev), a simple web app that showcases random GitHub repositories written in Go.
 
 ## Motivation
 
-I wanted to explore Go projects and learn how to write better Go code.
-Using the GitHub Search was too slow and clunky, so I built my own UI.
-The data is aggregated via GitHub API and displayed via simple net/http + html/template.
+I wanted to explore Go projects and improve my Go coding skills.
+Using GitHub Search felt slow and clunky, so I built my own UI.
+The data is aggregated via the GitHub API and displayed using `net/http` and `html/template`.
 
 > [!WARNING]
-> Please keep in mind that this project is still under heavy development
-> and I haven't cleaned up the code base yet.
+> This project is still under heavy development,
+> and the codebase has not been cleaned up yet.
 
 ## Development
 
