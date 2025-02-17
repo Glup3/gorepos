@@ -1,10 +1,10 @@
+# Go Repos
+
 <p align="center">
     <a href="https://gorepos.glup3.dev" target="_blank" rel="noopener">
         <img src="./screenshot.png" alt="Go Repos Screenshot" />
     </a>
 </p>
-
-# Go Repos
 
 Showcases random GitHub Go Repositories written in Go
 
