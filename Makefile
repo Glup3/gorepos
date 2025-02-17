@@ -5,7 +5,7 @@ data:
 	go run ./cmd/data/main.go
 
 css:
-	npx @tailwindcss/cli -i ./assets/css/input.css -o ./assets/css/output.css
+	npx @tailwindcss/cli -i ./assets/css/input.css -o ./assets/css/output.css --minify
 
 css-watch:
 	npx @tailwindcss/cli -i ./assets/css/input.css -o ./assets/css/output.css --watch
